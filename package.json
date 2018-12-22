@@ -1,0 +1,40 @@
+{
+  "name": "jukebox",
+  "version": "1.0.0",
+  "description": "Hackerspace Maringá Jukebox System",
+  "main": "index.js",
+  "author": "Tiago Nascimento <xtheosirian@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "axios": "^0.18.0",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.4",
+    "loudness": "^0.3.0",
+    "morgan": "^1.9.1",
+    "node-mpv": "^1.4.3",
+    "path": "^0.12.7",
+    "react": "^16.7.0",
+    "react-dom": "^16.7.0",
+    "uuid": "^3.3.2",
+    "youtube-dl": "^1.12.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.4",
+    "webpack": "^4.28.1",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.11"
+  },
+  "babel": {
+    "presets": [
+      "@babel/preset-env",
+      "@babel/preset-react"
+    ]
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
