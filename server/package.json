@@ -9,6 +9,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "cookie-parser": "^1.4.3",
+    "cors": "^2.8.5",
     "express": "^4.16.4",
     "loudness": "^0.3.0",
     "morgan": "^1.9.1",
