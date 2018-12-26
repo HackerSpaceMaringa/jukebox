@@ -31,6 +31,8 @@
 <script>
 import axios from "axios";
 import QueueList from "./components/QueueList.vue";
+const baseUrl = "/api";
+const api = url => `${baseUrl}${url}`;
 
 export default {
   name: "app",
@@ -60,7 +62,7 @@ export default {
     getPlaylists: function() {
       if (this.clear.playlist !== null) clearInterval(this.clear.playlist);
       axios
-        .get("http://localhost:3000/playlist")
+        .get(api("/playlist"))
         .then(response => (this.playlist = response.data.playlist))
         .catch(error => console.log(error))
         .finally(
@@ -69,7 +71,7 @@ export default {
     },
     postUrl: function() {
       axios
-        .post("http://localhost:3000/enqueue", {
+        .post(api("/enqueue"), {
           url: this.url
         })
         .then(response => {
@@ -80,7 +82,7 @@ export default {
     getVolume: function() {
       if (this.clear.volume !== null) clearInterval(this.clear.volume);
       axios
-        .get("http://localhost:3000/volume")
+        .get(api("/volume"))
         .then(response => (this.volume = response.data.volume))
         .catch(error => console.log(error))
         .finally(
@@ -89,7 +91,7 @@ export default {
     },
     postVolume: function() {
       axios
-        .post("http://localhost:3000/volume", {
+        .post(api("/volume"), {
           volume: parseInt(this.volume)
         })
         .catch(error => console.log(error));
@@ -97,7 +99,7 @@ export default {
     getUsers: function() {
       if (this.clear.users !== null) clearInterval(this.clear.users);
       axios
-        .get("http://localhost:3000/identify")
+        .get(api("/identify"))
         .then(response => (this.users = response.data.users))
         .catch(error => console.log(error))
         .finally(
@@ -113,7 +115,7 @@ export default {
             }
           : {};
       axios
-        .post("http://localhost:3000/identify", data)
+        .post(api("/identify"), data)
         .then(response => (this.token = response.data.token))
         .catch(error => {
           console.log(error);
