@@ -35,20 +35,26 @@ app.post("/enqueue", (req, res) => {
   if (queue.length < maxLength) {
     const { body } = req;
     if (typeof body.url === "string") {
-      youtubedl.getInfo(body.url, [], (err, info) => {
-        if (err)
-          res
-            .status(400)
-            .json({ error: "Could not grab information for video!" });
-        else {
-          const item = {
-            url: info.url,
-            title: info.title,
-            length: info.duration
-          };
-          queue.push(item);
-          res.json({ item });
-        }
+      youtubedl.exec(body.url,
+        ["--get-id", "--get-title", "--get-duration"],
+        {},
+        (err, output) => {
+          if (err) {
+            console.log(err);
+            res
+              .status(400)
+              .json({ error: "Could not grab information for video!" });
+          } else {
+            const titles = output.filter((e, i) => i % 3 === 0);
+            const ids = output.filter((e, i) => i % 3 === 1);
+            const durations = output.filter((e, i) => i % 3 === 2);
+            const parseds = ids
+              .map((e, i) => ({ url: e, title: titles[i], duration: durations[i] }))
+              .slice(0, maxLength - queue.length);
+            parseds.forEach(e => queue.push(e));
+            console.log(queue)
+            res.json({ items: parseds });
+          }
       });
     } else {
       res.status(400).json({ error: "Video URL must be a string!" });
@@ -122,7 +128,7 @@ setInterval(() => {
 
 const tryPlay = () => {
   if (queue.length > 0) {
-    player.load(queue[0].url);
+    player.load(`ytdl://${queue[0].url}`);
   } else {
     setTimeout(tryPlay, 1000);
   }
