@@ -56,7 +56,6 @@ app.post("/enqueue", (req, res) => {
               }))
               .slice(0, maxLength - queue.length);
             parseds.forEach(e => queue.push(e));
-            console.log(queue);
             res.json({ items: parseds });
           }
         }
@@ -133,7 +132,7 @@ player.on("stopped", () => {
   if (queue.length > 0) {
     queue.shift();
     if (queue.length > 0) {
-      player.load(queue[0].url);
+      player.load(`ytdl://${queue[0].url}`);
     } else {
       setTimeout(tryPlay, 1000);
     }
