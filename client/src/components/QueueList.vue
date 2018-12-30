@@ -5,7 +5,7 @@
     </p>
     <fragment v-if="displayHead">
       <span class="now">{{ "TOCANDO AGORA" }}</span>
-      <QueueItem v-bind:title="head.title" v-bind:length="head.length" />
+      <QueueItem v-bind:title="head.title" v-bind:length="head.duration" />
     </fragment>
     <fragment v-if="displayTail">
       <span class="next">{{ "PRÓXIMAS" }}</span>
