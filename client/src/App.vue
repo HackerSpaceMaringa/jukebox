@@ -13,13 +13,23 @@
       <div class="border"></div>
     </div>
     <div class="form">
-      <label> {{ "Adicionar" }} <input v-model="url" type="text" /> </label>
+      <label>
+        {{ "Adicionar" }}
+        <input v-model="url" type="text" v-bind:disabled="lock.url" />
+      </label>
       <button v-on:click="postUrl" type="submit">+</button>
     </div>
     <div class="form">
       <label>
         {{ "Volume" }}
-        <input v-model="volume" type="number" min="0" max="100" size="4" />
+        <input
+          v-model="volume"
+          type="number"
+          min="0"
+          max="100"
+          size="4"
+          v-bind:disabled="lock.volume"
+        />
       </label>
       <button v-on:click="postVolume" type="submit">SET</button>
     </div>
@@ -43,6 +53,10 @@ export default {
       users: 0,
       url: "",
       token: null,
+      lockInput: {
+        url: false,
+        volume: false
+      },
       clear: {
         playlist: null,
         volume: null,
@@ -70,14 +84,16 @@ export default {
         );
     },
     postUrl: function() {
+      this.lock.url = true;
       axios
         .post(api("/enqueue"), {
           url: this.url
         })
         .then(response => {
-          this.playlist.push(response.data.item);
+          this.playlist.concat(response.data.items);
         })
-        .catch(error => console.log(error));
+        .catch(error => console.log(error))
+        .finally(() => (this.lock.url = false));
     },
     getVolume: function() {
       if (this.clear.volume !== null) clearInterval(this.clear.volume);
@@ -90,11 +106,13 @@ export default {
         );
     },
     postVolume: function() {
+      this.lock.volume = true;
       axios
         .post(api("/volume"), {
           volume: parseInt(this.volume)
         })
-        .catch(error => console.log(error));
+        .catch(error => console.log(error))
+        .finally(() => (this.lock.volume = false));
     },
     getUsers: function() {
       if (this.clear.users !== null) clearInterval(this.clear.users);

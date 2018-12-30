@@ -1,4 +1,3 @@
-const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mpv = require("node-mpv");
@@ -35,7 +34,8 @@ app.post("/enqueue", (req, res) => {
   if (queue.length < maxLength) {
     const { body } = req;
     if (typeof body.url === "string") {
-      youtubedl.exec(body.url,
+      youtubedl.exec(
+        body.url,
         ["--get-id", "--get-title", "--get-duration"],
         {},
         (err, output) => {
@@ -49,13 +49,18 @@ app.post("/enqueue", (req, res) => {
             const ids = output.filter((e, i) => i % 3 === 1);
             const durations = output.filter((e, i) => i % 3 === 2);
             const parseds = ids
-              .map((e, i) => ({ url: e, title: titles[i], duration: durations[i] }))
+              .map((e, i) => ({
+                url: e,
+                title: titles[i],
+                duration: durations[i]
+              }))
               .slice(0, maxLength - queue.length);
             parseds.forEach(e => queue.push(e));
-            console.log(queue)
+            console.log(queue);
             res.json({ items: parseds });
           }
-      });
+        }
+      );
     } else {
       res.status(400).json({ error: "Video URL must be a string!" });
     }
@@ -106,16 +111,6 @@ app.post("/identify", (req, res) => {
       .json({ error: "Token must not be present or must be a string!" });
   }
 });
-
-app.get("/main.js", (req, res) =>
-  res.sendFile(path.resolve(__dirname, "public/main.min.js"))
-);
-app.get("/main.css", (req, res) =>
-  res.sendFile(path.resolve(__dirname, "public/main.min.css"))
-);
-app.get("*", (req, res) =>
-  res.sendFile(path.resolve(__dirname, "public/index.html"))
-);
 
 setInterval(() => {
   users = users
