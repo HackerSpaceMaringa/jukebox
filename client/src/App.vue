@@ -53,7 +53,7 @@ export default {
       users: 0,
       url: "",
       token: null,
-      lockInput: {
+      lock: {
         url: false,
         volume: false
       },
