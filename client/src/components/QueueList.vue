@@ -12,7 +12,7 @@
       <QueueItem
         v-for="(item, index) in tail"
         v-bind:title="item.title"
-        v-bind:length="item.length"
+        v-bind:length="item.duration"
         v-bind:key="index"
       />
     </fragment>
