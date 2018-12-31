@@ -13,7 +13,7 @@ const player = new mpv({
 const app = express();
 const port = process.env.PORT || 3000;
 
-const maxLength = 10;
+const maxLength = 30;
 let queue = [];
 let users = [];
 
@@ -131,11 +131,7 @@ const tryPlay = () => {
 player.on("stopped", () => {
   if (queue.length > 0) {
     queue.shift();
-    if (queue.length > 0) {
-      player.load(`ytdl://${queue[0].url}`);
-    } else {
-      setTimeout(tryPlay, 1000);
-    }
+    tryPlay();
   } else {
     setTimeout(tryPlay, 1000);
   }
