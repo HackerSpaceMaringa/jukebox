@@ -134,11 +134,15 @@ export default {
           : {};
       axios
         .post(api("/identify"), data)
-        .then(response => (this.token = response.data.token))
+        .then(response => {
+          this.token = response.data.token;
+          localStorage.setItem("token", this.token);
+        })
         .catch(error => {
           console.log(error);
           if (error.response.status === 401) {
             this.token = null;
+            localStorage.removeItem("token");
           }
         })
         .finally(
@@ -147,11 +151,19 @@ export default {
     }
   },
   mounted: function() {
+    if (localStorage.getItem("token")) {
+      this.token = localStorage.getItem("token");
+    }
     this.getPlaylists();
     this.getVolume();
     this.postUser();
   },
   beforeDestroy: function() {
+    if (this.token) {
+      localStorage.setItem("token");
+    } else {
+      localStorage.removeItem("token");
+    }
     clearInterval(this.clear.playlist);
     clearInterval(this.clear.volume);
     clearInterval(this.clear.users);
