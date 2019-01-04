@@ -13,9 +13,13 @@ const player = new mpv({
 const app = express();
 const port = process.env.PORT || 3000;
 
-const maxLength = 30;
 let queue = [];
 let users = [];
+
+const maxLength = n => 7 + n * 3;
+const shouldSkip = (n, u) => n / u > 0.6667;
+
+let seqId = 0;
 
 app.use(
   cors({
@@ -28,11 +32,30 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.get("/playlist", (req, res) => res.status(200).json({ playlist: queue }));
+const isIndentified = (req, res, next) => {
+  const { body } = req;
+  if (
+    typeof body.token !== "string" ||
+    !users.find(u => u.token === body.token)
+  ) {
+    res.status(401).json({
+      error: "Você precisa ser um usuário identificado para enviar comandos!"
+    });
+  } else {
+    next();
+  }
+};
 
-app.post("/enqueue", (req, res) => {
-  if (queue.length < maxLength) {
-    const { body } = req;
+app.get("/playlist", (req, res) => {
+  const { body } = req;
+  res.status(200).json({
+    playlist: queue.map(e => ({ ...e, votes: e.votes.includes(body.token) }))
+  });
+});
+
+app.post("/enqueue", isIdentified, (req, res) => {
+  const { body } = req;
+  if (queue.length < maxLength(users.length)) {
     if (typeof body.url === "string") {
       youtubedl.exec(
         body.url,
@@ -41,46 +64,64 @@ app.post("/enqueue", (req, res) => {
         (err, output) => {
           if (err) {
             console.log(err);
-            res
-              .status(400)
-              .json({ error: "Could not grab information for video!" });
+            res.status(400).json({
+              error: "Não foi possível obter as informações do vídeo!"
+            });
           } else {
             const titles = output.filter((e, i) => i % 3 === 0);
             const ids = output.filter((e, i) => i % 3 === 1);
             const durations = output.filter((e, i) => i % 3 === 2);
             const parseds = ids
               .map((e, i) => ({
+                id: id++,
                 url: e,
                 title: titles[i],
-                duration: durations[i]
+                duration: durations[i],
+                votes: []
               }))
-              .slice(0, maxLength - queue.length);
+              .slice(0, maxLength(users.length) - queue.length);
             parseds.forEach(e => queue.push(e));
             res.json({ items: parseds });
           }
         }
       );
     } else {
-      res.status(400).json({ error: "Video URL must be a string!" });
+      res.status(400).json({ error: "A URL do video deve ser uma string!" });
     }
   } else {
-    res.status(418).json({ error: "Cannot put more musics on the queue!" });
+    res.status(418).json({
+      error: "Não é possível colocar mais músicas, a fila está cheia!"
+    });
   }
 });
 
 app.get("/volume", (req, res) => {
-  player.getProperty("volume").then(function(volume) {
-    res.json({ volume });
-  });
+  player.getProperty("volume").then(volume => res.json({ volume }));
 });
 
-app.post("/volume", (req, res) => {
+app.post("/volume", isIdentified, (req, res) => {
   const { body } = req;
   if (typeof body.volume === "number") {
     player.volume(body.volume);
     res.status(204).end();
   } else {
-    res.status(400).json({ error: "Volume must be a number!" });
+    res.status(400).json({ error: "O volume deve ser um número!" });
+  }
+});
+
+app.post("/skip", (req, res) => {
+  const { body } = req;
+  if (typeof body.id === "number") {
+    queue = queue
+      .map(
+        e =>
+          body.id === e.id
+            ? { ...e }
+            : { ...e, votes: e.votes.concat([body.token]) }
+      )
+      .filter(e => shouldSkip(e.votes.length, users.length));
+  } else {
+    res.status(400).json({ error: "O id do voto deve ser um número!" });
   }
 });
 
@@ -92,22 +133,23 @@ app.post("/identify", (req, res) => {
   const { body } = req;
   if (typeof body.token === "undefined") {
     const token = uuid();
-    users = users.concat({ token, timer: 5 * 60 });
+    users = users.concat({ token, timer: 1 * 60 });
     res.status(200).json({ token });
   } else if (typeof body.token === "string") {
     if (!users.find(u => u.token === body.token)) {
-      res.status(401).json({ error: "Token is invalid!" });
+      res.status(401).json({ error: "O token é inválido!" });
     } else {
       users = users.map(u => {
-        if (u.token === body.token) u.timer = 5 * 60;
+        if (u.token === body.token) u.timer = 1 * 60;
         return u;
       });
       res.status(200).json({ token: body.token });
     }
   } else {
-    res
-      .status(400)
-      .json({ error: "Token must not be present or must be a string!" });
+    res.status(400).json({
+      error:
+        "O token deve ser uma string ou deve ser vazio para receber um novo!"
+    });
   }
 });
 
@@ -131,7 +173,11 @@ const tryPlay = () => {
 player.on("stopped", () => {
   if (queue.length > 0) {
     queue.shift();
-    tryPlay();
+    if (queue.length > 0) {
+      player.load(`ytdl://${queue[0].url}`);
+    } else {
+      setTimeout(tryPlay, 1000);
+    }
   } else {
     setTimeout(tryPlay, 1000);
   }
@@ -139,4 +185,4 @@ player.on("stopped", () => {
 
 setTimeout(tryPlay, 1000);
 
-app.listen(port, () => console.log(`Jukebox running on port ${port}!`));
+app.listen(port, () => console.log(`A Jukebox está rodando na porta ${port}!`));
