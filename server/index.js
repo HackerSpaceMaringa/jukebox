@@ -53,7 +53,7 @@ app.get("/playlist", (req, res) => {
   });
 });
 
-app.post("/enqueue", isIdentified, (req, res) => {
+app.post("/enqueue", isIndentified, (req, res) => {
   const { body } = req;
   if (queue.length < maxLength(users.length)) {
     if (typeof body.url === "string") {
@@ -99,7 +99,7 @@ app.get("/volume", (req, res) => {
   player.getProperty("volume").then(volume => res.json({ volume }));
 });
 
-app.post("/volume", isIdentified, (req, res) => {
+app.post("/volume", isIndentified, (req, res) => {
   const { body } = req;
   if (typeof body.volume === "number") {
     player.volume(body.volume);
@@ -173,11 +173,7 @@ const tryPlay = () => {
 player.on("stopped", () => {
   if (queue.length > 0) {
     queue.shift();
-    if (queue.length > 0) {
-      player.load(`ytdl://${queue[0].url}`);
-    } else {
-      setTimeout(tryPlay, 1000);
-    }
+    tryPlay();
   } else {
     setTimeout(tryPlay, 1000);
   }
