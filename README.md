@@ -1,5 +1,7 @@
 # Jukebox
 
+__Democratic__ jukebox to do what jukebox do, at the Hackerspace Maringá
+
 ## Build Client
 
 ```bash
