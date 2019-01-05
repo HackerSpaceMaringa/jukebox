@@ -5,15 +5,21 @@
     </p>
     <fragment v-if="displayHead">
       <span class="now">{{ "TOCANDO AGORA" }}</span>
-      <QueueItem v-bind:title="head.title" v-bind:length="head.duration" />
+      <QueueItem
+        v-bind:title="head.title"
+        v-bind:length="head.duration"
+        v-bind:votes="head.votes"
+      />
     </fragment>
     <fragment v-if="displayTail">
       <span class="next">{{ "PRÓXIMAS" }}</span>
       <QueueItem
-        v-for="(item, index) in tail"
+        v-for="item in tail"
         v-bind:title="item.title"
         v-bind:length="item.duration"
-        v-bind:key="index"
+        v-bind:votes="item.votes"
+        v-bind:id="item.id"
+        v-bind:key="item.id"
       />
     </fragment>
   </div>

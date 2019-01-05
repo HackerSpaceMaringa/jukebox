@@ -7,20 +7,18 @@ const uuid = require("uuid/v4");
 const cors = require("cors");
 
 const player = new mpv({
-  audio_only: true,
-  debug: true
+  audio_only: true
 });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 let queue = [];
-let users = [];
+const users = new Map()
 
 const maxLength = n => 7 + n * 3;
 const shouldSkip = (n, u) => n / u > 0.6667;
-
-let seqId = 0;
+const userTimeout = 60; // 60 Seconds
 
 app.use(
   cors({
@@ -33,32 +31,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-const isIndentified = (req, res, next) => {
-  const { body } = req;
-  console.log(req.headers)
-  console.log(body)
-  if (
-    typeof body.token !== "string" ||
-    !users.find(u => u.token === body.token)
-  ) {
-    res.status(401).json({
-      error: "Você precisa ser um usuário identificado para enviar comandos!"
-    });
-  } else {
-    next();
-  }
+const identify = (req, res, next) => {
+  const { headers } = req;
+
+  req.token = headers['x-real-ip'];
+  users.set(req.token, userTimeout);
+
+  next()
 };
+
+app.use(identify);
 
 app.get("/playlist", (req, res) => {
   const { body } = req;
   res.status(200).json({
-    playlist: queue.map(e => ({ ...e, votes: e.votes.has(body.token) }))
+    playlist: queue.map(e => ({ ...e, votes: e.votes.has(req.token) }))
   });
 });
 
-app.post("/enqueue", isIndentified, (req, res) => {
+app.post("/enqueue", (req, res) => {
   const { body } = req;
-  if (queue.length < maxLength(users.length)) {
+  if (queue.length < maxLength(users.size)) {
     if (typeof body.url === "string") {
       youtubedl.exec(
         body.url,
@@ -82,7 +75,7 @@ app.post("/enqueue", isIndentified, (req, res) => {
                 duration: durations[i],
                 votes: new Set()
               }))
-              .slice(0, maxLength(users.length) - queue.length);
+              .slice(0, maxLength(users.size) - queue.length);
 
             // Keep the size of queue before add new songs
             const prev_queue_state = queue.length;
@@ -109,7 +102,7 @@ app.get("/volume", (req, res) => {
   player.getProperty("volume").then(volume => res.json({ volume }));
 });
 
-app.post("/volume", isIndentified, (req, res) => {
+app.post("/volume", (req, res) => {
   const { body } = req;
   if (typeof body.volume === "number") {
     player.volume(body.volume);
@@ -122,51 +115,37 @@ app.post("/volume", isIndentified, (req, res) => {
 app.post("/skip", (req, res) => {
   const { body } = req;
   if (typeof body.id === "string") {
-    queue.find(e => body.id === e.id).votes.add(body.token)
-
-    queue = queue.filter(e => shouldSkip(e.votes.size, users.length));
-  } else {
-    res.status(400).json({ error: "O id do voto deve ser um número!" });
-  }
-});
-
-app.get("/identify", (req, red) => {
-  res.json({ users: users.length });
-});
-
-app.post("/identify", (req, res) => {
-  const { body } = req;
-  if (typeof body.token === "undefined") {
-    const token = uuid();
-    users = users.concat({ token, timer: 1 * 60 });
-    res.status(200).json({ token });
-  } else if (typeof body.token === "string") {
-    user_to_update = users.find(u => u.token === body.token);
-    if (!user_to_update) {
-      res.status(401).json({ error: "O token é inválido!" });
-    } else {
-      user_to_update.time = 60;
-
-      res.status(200).json({ token: body.token });
+    const item_voted = queue.find(e => body.id === e.id)
+    
+    if (item_voted) {
+        item_voted.votes.add(req.token)
+        queue = queue.filter(e => shouldSkip(e.votes.size, users.size));
+        res.status(204).end();
+    }
+    else {
+      res.status(404).json({ error: "Id não encontrado" });
     }
   } else {
-    res.status(400).json({
-      error:
-        "O token deve ser uma string ou deve ser vazio para receber um novo!"
-    });
+    res.status(400).json({ error: "O id do voto deve ser uma string!" });
   }
+});
+
+app.get("/identify", (req, res) => {
+  res.json({ users: users.size });
 });
 
 setInterval(() => {
-  users = users
-    .map(u => ({ ...u, timer: u.timer - 1 }))
-    .filter(u => u.timer);
+  users.forEach((time, token) => {
+    const new_time = time - 1;
+    if (new_time) users.set(token, new_time);
+    else users.delete(token);
+  })
 }, 1000);
 
 const tryPlay = () => {
-  if ({url} = queue.shift()) player.load(`ytdl://${url}`);
+  if (queue.length) player.load(`ytdl://${queue[0].url}`);
 }
 
-player.on("stopped", tryPlay);
+player.on("stopped", () => queue.shift() && tryPlay());
 
 app.listen(port, () => console.log(`A Jukebox está rodando na porta ${port}!`));
