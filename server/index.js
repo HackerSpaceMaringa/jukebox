@@ -7,7 +7,8 @@ const uuid = require("uuid/v4");
 const cors = require("cors");
 
 const player = new mpv({
-  audio_only: true
+  audio_only: true,
+  debug: true
 });
 
 const app = express();
@@ -34,6 +35,8 @@ app.use(cookieParser());
 
 const isIndentified = (req, res, next) => {
   const { body } = req;
+  console.log(req.headers)
+  console.log(body)
   if (
     typeof body.token !== "string" ||
     !users.find(u => u.token === body.token)
@@ -49,7 +52,7 @@ const isIndentified = (req, res, next) => {
 app.get("/playlist", (req, res) => {
   const { body } = req;
   res.status(200).json({
-    playlist: queue.map(e => ({ ...e, votes: e.votes.includes(body.token) }))
+    playlist: queue.map(e => ({ ...e, votes: e.votes.has(body.token) }))
   });
 });
 
@@ -73,14 +76,21 @@ app.post("/enqueue", isIndentified, (req, res) => {
             const durations = output.filter((e, i) => i % 3 === 2);
             const parseds = ids
               .map((e, i) => ({
-                id: id++,
+                id: uuid(),
                 url: e,
                 title: titles[i],
                 duration: durations[i],
-                votes: []
+                votes: new Set()
               }))
               .slice(0, maxLength(users.length) - queue.length);
+
+            // Keep the size of queue before add new songs
+            const prev_queue_state = queue.length;
             parseds.forEach(e => queue.push(e));
+
+            // If the size before enqueue was 0 play new song
+            if (!prev_queue_state) tryPlay()
+
             res.json({ items: parseds });
           }
         }
@@ -111,15 +121,10 @@ app.post("/volume", isIndentified, (req, res) => {
 
 app.post("/skip", (req, res) => {
   const { body } = req;
-  if (typeof body.id === "number") {
-    queue = queue
-      .map(
-        e =>
-          body.id === e.id
-            ? { ...e }
-            : { ...e, votes: e.votes.concat([body.token]) }
-      )
-      .filter(e => shouldSkip(e.votes.length, users.length));
+  if (typeof body.id === "string") {
+    queue.find(e => body.id === e.id).votes.add(body.token)
+
+    queue = queue.filter(e => shouldSkip(e.votes.size, users.length));
   } else {
     res.status(400).json({ error: "O id do voto deve ser um número!" });
   }
@@ -136,13 +141,12 @@ app.post("/identify", (req, res) => {
     users = users.concat({ token, timer: 1 * 60 });
     res.status(200).json({ token });
   } else if (typeof body.token === "string") {
-    if (!users.find(u => u.token === body.token)) {
+    user_to_update = users.find(u => u.token === body.token);
+    if (!user_to_update) {
       res.status(401).json({ error: "O token é inválido!" });
     } else {
-      users = users.map(u => {
-        if (u.token === body.token) u.timer = 1 * 60;
-        return u;
-      });
+      user_to_update.time = 60;
+
       res.status(200).json({ token: body.token });
     }
   } else {
@@ -155,30 +159,14 @@ app.post("/identify", (req, res) => {
 
 setInterval(() => {
   users = users
-    .map(u => {
-      u.timer -= 1;
-      return u;
-    })
-    .filter(u => u.timer > 0);
+    .map(u => ({ ...u, timer: u.timer - 1 }))
+    .filter(u => u.timer);
 }, 1000);
 
 const tryPlay = () => {
-  if (queue.length > 0) {
-    player.load(`ytdl://${queue[0].url}`);
-  } else {
-    setTimeout(tryPlay, 1000);
-  }
-};
+  if ({url} = queue.shift()) player.load(`ytdl://${url}`);
+}
 
-player.on("stopped", () => {
-  if (queue.length > 0) {
-    queue.shift();
-    tryPlay();
-  } else {
-    setTimeout(tryPlay, 1000);
-  }
-});
-
-setTimeout(tryPlay, 1000);
+player.on("stopped", tryPlay);
 
 app.listen(port, () => console.log(`A Jukebox está rodando na porta ${port}!`));

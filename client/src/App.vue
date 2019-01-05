@@ -87,7 +87,8 @@ export default {
       this.lock.url = true;
       axios
         .post(api("/enqueue"), {
-          url: this.url
+          url: this.url,
+          token: this.token
         })
         .then(response => {
           this.playlist.concat(response.data.items);
@@ -109,7 +110,8 @@ export default {
       this.lock.volume = true;
       axios
         .post(api("/volume"), {
-          volume: parseInt(this.volume)
+          volume: parseInt(this.volume),
+          token: this.token
         })
         .catch(error => console.log(error))
         .finally(() => (this.lock.volume = false));
