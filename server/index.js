@@ -122,7 +122,7 @@ app.post('/skip', (req, res) => {
 
     if (itemVoted) {
       itemVoted.votes.add(req.token);
-      queue = queue.filter(e => shouldSkip(e.votes.size, users.size));
+      queue = queue.filter(e => !shouldSkip(e.votes.size, users.size));
       res.status(204).end();
     } else {
       res.status(404).json({ error: 'Id não encontrado' });

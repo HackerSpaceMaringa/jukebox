@@ -1,5 +1,7 @@
 FROM node:11.3.0-alpine as builder
 
+RUN apk add python make g++
+
 COPY . /app
 WORKDIR /app
 
