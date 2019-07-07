@@ -127,7 +127,6 @@ export default {
   mounted: function() {
     this.getPlaylists();
     this.getVolume();
-    this.postUser();
   },
   beforeDestroy: function() {
     clearInterval(this.clear.playlist);
