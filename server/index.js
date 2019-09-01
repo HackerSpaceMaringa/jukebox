@@ -81,11 +81,11 @@ app.post('/enqueue', (req, res) => {
               .slice(0, maxLength(users.size) - queue.length);
 
             // Keep the size of queue before add new songs
-            const prevQueueState = queue.length;
+            const prevQueueLen = queue.length;
             parseds.forEach(e => queue.push(e));
 
             // If the size before enqueue was 0 play new song
-            if (!prevQueueState) tryPlay();
+            if (prevQueueLen === 0) tryPlay();
 
             res.json({ items: parseds });
           }
