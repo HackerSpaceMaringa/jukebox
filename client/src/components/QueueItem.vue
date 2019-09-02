@@ -2,32 +2,35 @@
   <div class="item">
     <div class="content">
       <span class="title">{{ title }}</span>
-      <span class="length">{{ paddedLength }}</span>
+      <span class="length">{{ length }}</span>
+      <button v-on:click="vote">
+        <span v-bind:class="{ skip: true, voted: votes }">≫</span>
+      </button>
     </div>
     <div class="label">
       <span class="title">{{ "título" }}</span>
       <span class="length">{{ "duração" }}</span>
+      <span class="skip">{{ "skip" }}</span>
     </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: "QueueItem",
   props: {
     title: String,
-    length: String
+    length: String,
+    votes: Boolean,
+    id: String
   },
-  computed: {
-    paddedLength: function() {
-      if (this.length.split(":").length === 1)
-        return `00:${
-          parseInt(this.length) > 9 ? this.length : `0${this.length}`
-        }`;
-      return this.length
-        .split(":")
-        .map(n => (parseInt(n) > 9 ? n : `0${n}`))
-        .join(":");
+  methods: {
+    vote: function() {
+      axios
+        .post("/api/skip", { id: this.id })
+        .catch(error => console.log(error));
     }
   }
 };
@@ -77,6 +80,16 @@ $form: #00ff85;
       text-shadow: 0 0 8px $length-content;
       margin-left: 2rem;
     }
+
+    .skip {
+      color: $length-content;
+      text-shadow: 0 0 8px $length-content;
+      margin-left: 2rem;
+    }
+
+    .voted {
+      color: $other-green;
+    }
   }
 
   .label {
@@ -88,6 +101,7 @@ $form: #00ff85;
     justify-content: space-between;
 
     .title,
+    .skip,
     .length {
       user-select: none;
       font-size: 0.6em;
