@@ -17,21 +17,22 @@
         {{ "Adicionar" }}
         <input v-model="url" type="text" v-bind:disabled="lock.url" />
       </label>
-      <button v-on:click="postUrl" type="submit">+</button>
+      <button v-bind:disabled="lock.volume" v-on:click="postUrl" type="submit">
+        +
+      </button>
     </div>
     <div class="form">
       <label>
         {{ "Volume" }}
-        <input
-          v-model="volume"
-          type="number"
-          min="0"
-          max="100"
-          size="4"
-          v-bind:disabled="lock.volume"
-        />
+        <input v-model="volume" type="number" min="0" max="100" size="4" />
       </label>
-      <button v-on:click="postVolume" type="submit">SET</button>
+      <button
+        v-on:click="postVolume"
+        type="submit"
+        v-bind:disabled="lock.volume"
+      >
+        SET
+      </button>
     </div>
     <div class="users">{{ userCount }}</div>
     <QueueList v-bind:playlist="playlist" />
@@ -52,7 +53,6 @@ export default {
       volume: 50,
       users: 0,
       url: "",
-      token: null,
       lock: {
         url: false,
         volume: false
@@ -60,8 +60,7 @@ export default {
       clear: {
         playlist: null,
         volume: null,
-        users: null,
-        token: null
+        users: null
       }
     };
   },
@@ -123,33 +122,11 @@ export default {
         .finally(
           () => (this.clear.users = setTimeout(this.getUsers, 5 * 1000))
         );
-    },
-    postUser: function() {
-      if (this.clear.token !== null) clearInterval(this.clear.token);
-      const data =
-        this.token !== null
-          ? {
-              token: this.token
-            }
-          : {};
-      axios
-        .post(api("/identify"), data)
-        .then(response => (this.token = response.data.token))
-        .catch(error => {
-          console.log(error);
-          if (error.response.status === 401) {
-            this.token = null;
-          }
-        })
-        .finally(
-          () => (this.clear.users = setTimeout(this.postUser, 30 * 1000))
-        );
     }
   },
   mounted: function() {
     this.getPlaylists();
     this.getVolume();
-    this.postUser();
   },
   beforeDestroy: function() {
     clearInterval(this.clear.playlist);
